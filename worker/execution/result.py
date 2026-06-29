@@ -1,13 +1,10 @@
-from dataclasses import dataclass, field
-from typing import Optional, Dict, Any
+from dataclasses import dataclass
 
 @dataclass
 class ExecutionResult:
     """Represents the outcome of a job execution."""
-    status: str
+    success: bool
     provider: str
-    filename: str
-    output_path: str
     generation_time: float
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    error_message: Optional[str] = None
+    image_path: str
+    message: str

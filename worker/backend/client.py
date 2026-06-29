@@ -37,3 +37,45 @@ class BackendClient:
                 return None
         except requests.RequestException:
             return None
+
+    def update_job_progress(self, job_id: int, progress: int) -> Optional[Dict[str, Any]]:
+        """Update progress percentage of a job on the backend."""
+        try:
+            response = requests.patch(
+                f"{self.backend_url}/jobs/{job_id}/progress",
+                json={"progress": progress},
+                timeout=5
+            )
+            if response.status_code == 200:
+                return response.json()
+            return None
+        except requests.RequestException:
+            return None
+
+    def complete_job(self, job_id: int, drive_file_id: Optional[str], generation_time: Optional[float]) -> Optional[Dict[str, Any]]:
+        """Mark a job as completed on the backend."""
+        try:
+            response = requests.post(
+                f"{self.backend_url}/jobs/{job_id}/complete",
+                json={"drive_file_id": drive_file_id, "generation_time": generation_time},
+                timeout=5
+            )
+            if response.status_code == 200:
+                return response.json()
+            return None
+        except requests.RequestException:
+            return None
+
+    def fail_job(self, job_id: int, error_message: str) -> Optional[Dict[str, Any]]:
+        """Mark a job as failed on the backend."""
+        try:
+            response = requests.post(
+                f"{self.backend_url}/jobs/{job_id}/failed",
+                json={"error_message": error_message},
+                timeout=5
+            )
+            if response.status_code == 200:
+                return response.json()
+            return None
+        except requests.RequestException:
+            return None

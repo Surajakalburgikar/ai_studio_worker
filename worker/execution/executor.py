@@ -42,23 +42,17 @@ class Executor:
             output_path = self.storage_provider.save_image(filename, image)
             
             return ExecutionResult(
-                status="success",
+                success=True,
                 provider=self.image_provider.get_name(),
-                filename=filename,
-                output_path=output_path,
                 generation_time=generation_time,
-                metadata={
-                    "prompt": job.prompt,
-                    "scene_id": job.scene_id,
-                    "shot_number": job.shot_number,
-                }
+                image_path=output_path,
+                message="Image generated successfully"
             )
         except Exception as e:
             return ExecutionResult(
-                status="failed",
+                success=False,
                 provider=self.image_provider.get_name(),
-                filename=filename,
-                output_path="",
                 generation_time=0.0,
-                error_message=str(e)
+                image_path="",
+                message=str(e)
             )
