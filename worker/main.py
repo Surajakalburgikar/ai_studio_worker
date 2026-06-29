@@ -1,6 +1,8 @@
+import sys
 from worker.config import settings
 from worker.image_providers.mock import MockProvider
 from worker.storage.local import LocalStorage
+from worker.backend.client import BackendClient
 
 def main() -> None:
     # Resolve image provider name
@@ -24,7 +26,16 @@ def main() -> None:
     print(f"Backend URL: {settings.backend_url}")
     print(f"Selected Image Provider: {image_provider_name}")
     print(f"Selected Storage Provider: {storage_provider_name}")
-    print("Worker Status: READY")
+
+    print("Checking backend...")
+    client = BackendClient()
+    if client.check_connection():
+        print("Backend Connected")
+        print("Worker Status READY")
+    else:
+        print("Backend Offline")
+        print("Worker Status ERROR")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
