@@ -1,6 +1,7 @@
 import time
 from worker.config import settings
 from worker.jobs.fetch import JobFetcher
+from worker.jobs.process import JobProcessor
 
 def start_poller() -> None:
     """Poll the backend for generation jobs in an infinite loop.
@@ -10,8 +11,10 @@ def start_poller() -> None:
     """
     poll_interval = settings.poll_interval
     fetcher = JobFetcher()
+    processor = JobProcessor()
 
     while True:
+        print("Polling...")
         job = fetcher.fetch_job()
         if job is not None:
             print("Job Received")
@@ -21,7 +24,9 @@ def start_poller() -> None:
             print(f"Provider: {job.provider}")
             print(f"Filename: {job.filename}")
             print(f"Status: {job.status}")
+            
+            # Delegate orchestration of job execution to JobProcessor
+            processor.process(job)
             break
         else:
-            print("No jobs found")
             time.sleep(poll_interval)

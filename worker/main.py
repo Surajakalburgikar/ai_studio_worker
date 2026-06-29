@@ -6,6 +6,7 @@ from worker.backend.client import BackendClient
 from worker.queue.poller import start_poller
 
 def main() -> None:
+    print("Worker Started")
     # Resolve image provider name
     if settings.image_provider == "mock":
         image_provider = MockProvider()
