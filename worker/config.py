@@ -17,6 +17,7 @@ class Settings:
         self.image_provider: str = os.getenv("IMAGE_PROVIDER", "mock")
         self.storage_provider: str = os.getenv("STORAGE_PROVIDER", "local")
         self.worker_version: str = os.getenv("WORKER_VERSION", "0.1.0")
+        self.poll_interval: int = int(os.getenv("POLL_INTERVAL", "5"))
 
 # Expose settings object
 settings = Settings()
