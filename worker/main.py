@@ -3,6 +3,7 @@ from worker.config import settings
 from worker.image_providers.mock import MockProvider
 from worker.storage.local import LocalStorage
 from worker.backend.client import BackendClient
+from worker.queue.poller import start_poller
 
 def main() -> None:
     # Resolve image provider name
@@ -32,6 +33,7 @@ def main() -> None:
     if client.check_connection():
         print("Backend Connected")
         print("Worker Status READY")
+        start_poller()
     else:
         print("Backend Offline")
         print("Worker Status ERROR")
