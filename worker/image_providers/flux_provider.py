@@ -89,19 +89,19 @@ class FluxProvider(BaseImageProvider):
                 "[Flux] HF_TOKEN is not set. "
                 "Please set HF_TOKEN in your .env file."
             )
-        if not settings.hf_provider:
-            raise ValueError(
-                "[Flux] HF_PROVIDER is not set. "
-                "Please set HF_PROVIDER in your .env file (e.g. fal-ai)."
-            )
 
     def _create_client(self) -> InferenceClient:
         """Create and return a configured Hugging Face InferenceClient."""
         print("[Flux] Loading provider...")
-        return InferenceClient(
-            provider=settings.hf_provider,
-            api_key=settings.hf_token,
-        )
+        if settings.hf_provider:
+            return InferenceClient(
+                provider=settings.hf_provider,
+                api_key=settings.hf_token,
+            )
+        else:
+            return InferenceClient(
+                api_key=settings.hf_token,
+            )
 
     def _build_request_kwargs(self, prompt: str, negative_prompt: str | None, job: GenerationJob = None) -> dict:
         """Build the keyword arguments dictionary for the text_to_image call."""
