@@ -19,5 +19,11 @@ class Settings:
         self.worker_version: str = os.getenv("WORKER_VERSION", "0.1.0")
         self.poll_interval: int = int(os.getenv("POLL_INTERVAL", "5"))
 
+        # Hugging Face / FLUX configuration
+        self.hf_token: str = os.getenv("HF_TOKEN", "")
+        self.hf_provider: str = os.getenv("HF_PROVIDER", "")
+        self.hf_model: str = os.getenv("HF_MODEL", "black-forest-labs/FLUX.1-dev")
+        self.hf_timeout: int = int(os.getenv("HF_TIMEOUT", "120"))
+
 # Expose settings object
 settings = Settings()

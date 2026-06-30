@@ -1,18 +1,14 @@
 import sys
 from worker.config import settings
-from worker.image_providers.mock import MockProvider
 from worker.storage.local import LocalStorage
 from worker.backend.client import BackendClient
 from worker.queue.poller import start_poller
 
 def main() -> None:
     print("Worker Started")
-    # Resolve image provider name
-    if settings.image_provider == "mock":
-        image_provider = MockProvider()
-        image_provider_name = image_provider.get_name()
-    else:
-        image_provider_name = settings.image_provider
+    # Provider name comes from configuration.
+    # Actual provider resolution is handled by Executor, not main.py.
+    image_provider_name = settings.image_provider
 
     # Resolve storage provider name
     if settings.storage_provider == "local":
