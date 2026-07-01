@@ -21,6 +21,15 @@ class MockProvider(BaseImageProvider):
           - First 100 characters of prompt
         """
         print("Generating Image")
+        self.last_model_used = "mock-model"
+        self.last_transport_used = "mock"
+        
+        prompt_str = str(job.prompt).lower()
+        if "trigger_rate_limit" in prompt_str:
+            raise Exception("Rate limit 429 exceeded")
+        if "trigger_unauthorized" in prompt_str:
+            raise Exception("Unauthorized 401: Invalid API Key")
+
         # Create a dark image
         image = Image.new("RGB", (800, 600), color=(30, 30, 30))
         draw = ImageDraw.Draw(image)

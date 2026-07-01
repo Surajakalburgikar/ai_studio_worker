@@ -15,6 +15,8 @@ class GenerationJob:
     priority: int
     retry_count: int
     progress: int
+    project_id: Optional[int] = None
+    scene_number: Optional[int] = None
     drive_file_id: Optional[str] = None
     generation_time: Optional[float] = None
     created_at: Optional[str] = None
@@ -35,6 +37,8 @@ class GenerationJob:
             priority=data.get("priority", 0),
             retry_count=data.get("retry_count", 0),
             progress=data.get("progress", 0),
+            project_id=data.get("project_id"),
+            scene_number=data.get("scene_number"),
             drive_file_id=data.get("drive_file_id"),
             generation_time=data.get("generation_time"),
             created_at=data.get("created_at"),

@@ -27,6 +27,8 @@ def start_poller() -> None:
             
             # Delegate orchestration of job execution to JobProcessor
             processor.process(job)
-            break
+            import os
+            if os.environ.get("SINGLE_JOB_MODE") == "true":
+                break
         else:
             time.sleep(poll_interval)

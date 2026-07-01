@@ -52,12 +52,12 @@ class BackendClient:
         except requests.RequestException:
             return None
 
-    def complete_job(self, job_id: int, drive_file_id: Optional[str], generation_time: Optional[float]) -> Optional[Dict[str, Any]]:
+    def complete_job(self, job_id: int, drive_file_id: Optional[str], generation_time: Optional[float], provider: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Mark a job as completed on the backend."""
         try:
             response = requests.post(
                 f"{self.backend_url}/jobs/{job_id}/complete",
-                json={"drive_file_id": drive_file_id, "generation_time": generation_time},
+                json={"drive_file_id": drive_file_id, "generation_time": generation_time, "provider": provider},
                 timeout=5
             )
             if response.status_code == 200:

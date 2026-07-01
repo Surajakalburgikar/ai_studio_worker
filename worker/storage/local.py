@@ -16,9 +16,9 @@ class LocalStorage(BaseStorage):
         """
         print("Saving Image")
         save_dir = BASE_DIR / "generated"
-        save_dir.mkdir(parents=True, exist_ok=True)
-        
         filepath = save_dir / filename
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        
         image.save(filepath, format="PNG")
         
         # We can return either a relative path or absolute path. Let's return the string representation of the filepath.

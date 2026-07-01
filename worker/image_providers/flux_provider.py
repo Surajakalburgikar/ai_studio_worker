@@ -48,34 +48,89 @@ class FluxProvider(BaseImageProvider):
 
         Returns:
             PIL.Image.Image — the generated image.
-
-        Raises:
-            ConnectionError: Network or connectivity failure.
-            PermissionError: Authentication or authorization failure.
-            TimeoutError: Request exceeded configured timeout.
-            RuntimeError: Provider returned an error or unexpected failure.
         """
         prompt = job.prompt
         negative_prompt = job.negative_prompt
 
+        spec = getattr(job, "generation_spec", None) if job else None
+
+        # Determine model
+        model = settings.hf_model
+        if spec and spec.get("model"):
+            model = spec.get("model")
+
+        # Determine provider transport dynamically
+        provider_transport = None
+        if spec and spec.get("provider"):
+            provider_transport = spec.get("provider")
+        if not provider_transport:
+            provider_transport = settings.hf_provider
+            
+        if provider_transport == "flux":
+            provider_transport = None
+
         print(f"[Flux] Generating image for job {job.id}")
+        print(f"[Flux] Model: {model}, Transport: {provider_transport or 'serverless'}")
         print(f"[Flux] Prompt: {prompt[:100]}")
 
         if negative_prompt:
             print(f"[Flux] Negative prompt: {negative_prompt[:80]}")
 
+        # Build dynamic client
+        if provider_transport:
+            client = InferenceClient(
+                provider=provider_transport,
+                api_key=settings.hf_token,
+            )
+        else:
+            client = InferenceClient(
+                api_key=settings.hf_token,
+            )
+
+        kwargs = self._build_request_kwargs(prompt, negative_prompt, job=job)
+        self.last_model_used = model
+        self.last_transport_used = provider_transport or "serverless"
+
         try:
             print("[Flux] Sending request to Hugging Face...")
-
-            # Build keyword arguments for the API call
-            kwargs = self._build_request_kwargs(prompt, negative_prompt, job=job)
-
-            image = self.client.text_to_image(**kwargs)
-
+            image = client.text_to_image(**kwargs)
             print("[Flux] Image generated successfully")
             return image
-
         except Exception as e:
+            # 1. Same-model transport fallback (always allowed)
+            if provider_transport:
+                print(f"[Flux] Transport {provider_transport} failed: {e}. Attempting same-model transport fallback to serverless...")
+                try:
+                    fallback_client = InferenceClient(api_key=settings.hf_token)
+                    image = fallback_client.text_to_image(**kwargs)
+                    self.last_transport_used = "serverless"
+                    print("[Flux] Image generated successfully via fallback transport")
+                    return image
+                except Exception as fe:
+                    print(f"[Flux] Fallback transport failed: {fe}")
+
+            # 2. Quality-downgrade fallback (if enabled in metadata)
+            quality_mode = "production"
+            allow_downgrade = False
+            if spec and spec.get("metadata"):
+                quality_mode = spec["metadata"].get("quality_mode", "production")
+                allow_downgrade = spec["metadata"].get("allow_quality_downgrade", False)
+
+            if quality_mode != "production" and allow_downgrade:
+                if "dev" in model.lower():
+                    schnell_model = "black-forest-labs/FLUX.1-schnell"
+                    print(f"[Flux] Quality policy permits downgrade. Attempting fallback to {schnell_model}...")
+                    try:
+                        kwargs["model"] = schnell_model
+                        fallback_client = InferenceClient(api_key=settings.hf_token)
+                        image = fallback_client.text_to_image(**kwargs)
+                        self.last_model_used = schnell_model
+                        self.last_transport_used = "serverless"
+                        print(f"[Flux] Image generated successfully via fallback model {schnell_model}")
+                        return image
+                    except Exception as fe:
+                        print(f"[Flux] Fallback model failed: {fe}")
+
             raise self._classify_error(e) from e
 
     # ------------------------------------------------------------------

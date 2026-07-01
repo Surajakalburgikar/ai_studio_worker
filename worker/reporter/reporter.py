@@ -27,7 +27,8 @@ class Reporter:
         self.client.complete_job(
             job_id=job.id,
             drive_file_id=execution_result.image_path,
-            generation_time=execution_result.generation_time
+            generation_time=execution_result.generation_time,
+            provider=execution_result.provider
         )
 
     def report_failed(self, job: GenerationJob, error: Union[Exception, str]) -> None:

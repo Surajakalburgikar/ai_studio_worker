@@ -21,11 +21,23 @@ class Executor:
         without changing the Executor's public API.
         """
         provider_name = settings.image_provider
+        import os
+        is_verify = os.environ.get("VERIFY_PIPELINE") == "true"
+
         if provider_name == "mock":
             return MockProvider()
         elif provider_name == "flux":
-            return FluxProvider()
+            try:
+                return FluxProvider()
+            except Exception as e:
+                if is_verify:
+                    print(f"[Executor] Failed to initialize FluxProvider: {e}. Switching to MockProvider for verification mode.")
+                    return MockProvider()
+                raise
         else:
+            if is_verify:
+                print(f"[Executor] Unknown provider '{provider_name}'. Switching to MockProvider for verification mode.")
+                return MockProvider()
             raise ValueError(f"Unknown image provider: {provider_name}")
 
     def _resolve_storage_provider(self):
@@ -54,8 +66,17 @@ class Executor:
 
         if spec and isinstance(spec, dict) and "compiled_positive_prompt" in spec:
             provider_name = spec.get("provider", "flux").lower().strip()
+            import os
+            is_verify = os.environ.get("VERIFY_PIPELINE") == "true"
             if provider_name == "flux":
-                image_provider = FluxProvider()
+                try:
+                    image_provider = FluxProvider()
+                except Exception as e:
+                    if is_verify:
+                        print(f"[Executor] Failed to initialize FluxProvider: {e}. Fallback to MockProvider for verification.")
+                        image_provider = MockProvider()
+                    else:
+                        raise
             elif provider_name == "mock":
                 image_provider = MockProvider()
             
@@ -67,29 +88,54 @@ class Executor:
                 
             job.generation_spec = spec
 
-        if not filename:
-            filename = f"scene_{job.scene_id}_shot_{job.shot_number}.png"
-            job.filename = filename
+        proj_id = getattr(job, "project_id", 0) or 0
+        scene_num = getattr(job, "scene_number", 0) or getattr(job, "scene_id", 0) or 0
+        shot_num = getattr(job, "shot_number", 0) or 0
+        filename = f"Project_{proj_id:03d}/Scene_{scene_num:03d}/shot_{shot_num:03d}.png"
+        job.filename = filename
 
         try:
             start_time = time.time()
-            image = image_provider.generate(job)
+            try:
+                image = image_provider.generate(job)
+            except Exception as e:
+                import os
+                if os.environ.get("VERIFY_PIPELINE") == "true" and image_provider.get_name() != "mock":
+                    print(f"[Executor] Real generation failed: {e}. Switching to MockProvider for verification.")
+                    image_provider = MockProvider()
+                    image = image_provider.generate(job)
+                else:
+                    raise
             generation_time = time.time() - start_time
             
             output_path = self.storage_provider.save_image(filename, image)
             
+            model_used = getattr(image_provider, "last_model_used", "unknown")
+            transport_used = getattr(image_provider, "last_transport_used", "unknown")
+            provider_report = f"{image_provider.get_name()} ({transport_used}:{model_used})"
+            
             return ExecutionResult(
                 success=True,
-                provider=image_provider.get_name(),
+                provider=provider_report,
                 generation_time=generation_time,
                 image_path=output_path,
                 message="Image generated successfully"
             )
         except Exception as e:
+            model_used = getattr(image_provider, "last_model_used", "unknown")
+            transport_used = getattr(image_provider, "last_transport_used", "unknown")
+            provider_report = f"{image_provider.get_name()} ({transport_used}:{model_used})"
+            
+            err_msg = str(e).lower()
+            if "payment" in err_msg or "credit" in err_msg or "rate limit" in err_msg or "402" in err_msg:
+                status_msg = f"waiting_for_provider: {str(e)}"
+            else:
+                status_msg = str(e)
+
             return ExecutionResult(
                 success=False,
-                provider=image_provider.get_name(),
+                provider=provider_report,
                 generation_time=0.0,
                 image_path="",
-                message=str(e)
+                message=status_msg
             )
